@@ -3,50 +3,46 @@ import grovepi
 import math
 
 # A port
-light_sensor = 0
-mositure_sensor = 1
+LIGHT_SENSOR = 0
+MOISTURE_SENSOR = 1
 
 # D port
-button_sensor = 2
-temp_himidity_sensor = 3
-relay_actuator = 4
-
-grovepi.pinMode(light_sensor, "INPUT")
-grovepi.pinMode(mositure_sensor, "INPUT")
-grovepi.pinMode(button_sensor, "INPUT")
-grovepi.pinMode(button_sensor, "INPUT")
-grovepi.pinMode(relay_actuator, "OUTPUT")
+BUTTON_SENSOR = 2
+TEMP_HUMIDITY_SENSOR = 3
+RELAY_ACTUATOR = 4
 
 # dht type
-blue = 0
-white = 1
+BLUE = 0
+WHITE = 1
 
 # relay state
-relay_off = 0
-relay_on = 1
+RELAY_OFF = 0
+RELAY_ON = 1
 
 # button state
-button_pressed = 1
+BUTTON_PRESSED = 1
 
 # test timings
-time_for_sensor = 4
-time_to_sleep = 1
-watering_time = 5
-moisture_threshold = 80
-# final timings
-# time_for_sensor = 1 * 60 * 60
-# time_to_sleep = 1 * 60
-# watering_time = 60
-# moisture_threshold = 18
+TIME_FOR_SENSOR = 4
+TIME_TO_SLEEP = 1
+WATERING_TIME = 5
+MOISTURE_THRESHOLD = 80
 
-log_file = "plant_monitor_log.csv"
+# final timings
+# TIME_FOR_SENSOR = 1 * 60 * 60
+# TIME_TO_SLEEP = 1 * 60
+# WATERING_TIME = 60
+# MOISTURE_THRESHOLD = 18
+
+# log file
+LOG_FILE = "plant_monitor_log.csv"
 
 def read_sensor():
     try:
-        moisture = grovepi.analogRead(mositure_sensor)
-        light = grovepi.analogRead(light_sensor)
-        button = grovepi.digitalRead(button_sensor)
-        [temp, humidity] = grovepi.dht(temp_himidity_sensor, blue)
+        moisture = grovepi.analogRead(MOISTURE_SENSOR)
+        light = grovepi.analogRead(LIGHT_SENSOR)
+        button = grovepi.digitalRead(BUTTON_SENSOR)
+        [temp, humidity] = grovepi.dht(TEMP_HUMIDITY_SENSOR, BLUE)
         if math.isnan(temp) or math.isnan(humidity):
             return [-1, -1, -1, -1]
         return [moisture, light, temp, humidity, button]
@@ -54,44 +50,51 @@ def read_sensor():
     except IOError as TypeError:
         return [-1, -1, -1, -1]
 
+
+def init():
+    grovepi.pinMode(LIGHT_SENSOR, "INPUT")
+    grovepi.pinMode(MOISTURE_SENSOR, "INPUT")
+    grovepi.pinMode(BUTTON_SENSOR, "INPUT")
+    grovepi.pinMode(BUTTON_SENSOR, "INPUT")
+    grovepi.pinMode(RELAY_ACTUATOR, "OUTPUT")
+    print("Plant Monitor Started")
+    with open(LOG_FILE, 'w') as f:
+        f.write("time, moisture, light, temp, humidity, button, relay\n")
+
 last_read_sensor = int(time.time())
-
-print("Plant Monitor Started")
-with open(log_file, 'w') as f:
-	f.write("time, moisture, light, temp, humidity, button, relay\n")
-
+init()
 while True:
     curr_time_sec = int(time.time())
-    relay = relay_off
+    relay = RELAY_OFF
 
-    if curr_time_sec - last_read_sensor > time_for_sensor:
+    if curr_time_sec - last_read_sensor > TIME_FOR_SENSOR:
         [moisture, light, temp, humidity, button] = read_sensor()
         if moisture == -1:
             print("Bad reading")
             time.sleep(1)
             continue
 
-        if (moisture != 0 and moisture < moisture_threshold) or button == button_pressed:
-          print("Relay On")
-          relay = relay_on
-          grovepi.digitalWrite(relay_actuator, relay_on)
+        if (moisture != 0 and moisture < MOISTURE_THRESHOLD) or button == BUTTON_PRESSED:
+            print("Relay On")
+            relay = RELAY_ON
+            grovepi.digitalWrite(RELAY_ACTUATOR, RELAY_ON)
 
         curr_time = time.strftime("%Y-%m-%d:%H-%M-%S")
-        button_status = "Pressed" if button == button_pressed else "Not Pressed"
-        relay_status = "On" if relay == relay_on else "Off"
+        button_status = "Pressed" if button == BUTTON_PRESSED else "Not Pressed"
+        relay_status = "On" if relay == RELAY_ON else "Off"
         print("Time: %s\nMoisture: %d\nLight: %d\nTemp: %.2f\nHumidity: %.2f %%\nButton: %s\nRelay: %s\n"
-              %(curr_time, moisture, light, temp, humidity, button_status, relay_status))
+              % (curr_time, moisture, light, temp, humidity, button_status, relay_status))
 
-        with open(log_file, 'a') as f:
-          f.write("%s, %d, %d, %.2f, %.2f, %s, %s\n"
-                  %(curr_time, moisture, light, temp, humidity, button_status, relay_status))
+        with open(LOG_FILE, 'a') as f:
+            f.write("%s, %d, %d, %.2f, %.2f, %s, %s\n"
+                    % (curr_time, moisture, light, temp, humidity, button_status, relay_status))
 
-        if relay == relay_on:
-          time.sleep(watering_time)
-          grovepi.digitalWrite(relay_actuator, relay_off)
-          print("Relay Off")
-          curr_time = time.strftime("%Y-%m-%d:%H-%M-%S")
+        if relay == RELAY_ON:
+            time.sleep(WATERING_TIME)
+            grovepi.digitalWrite(RELAY_ACTUATOR, RELAY_OFF)
+            print("Relay Off")
+            curr_time = time.strftime("%Y-%m-%d:%H-%M-%S")
 
         last_read_sensor = curr_time_sec
 
-    time.sleep(time_to_sleep)
+    time.sleep(TIME_TO_SLEEP)
