@@ -44,11 +44,11 @@ def read_sensor():
         button = grovepi.digitalRead(BUTTON_SENSOR)
         [temp, humidity] = grovepi.dht(TEMP_HUMIDITY_SENSOR, BLUE)
         if math.isnan(temp) or math.isnan(humidity):
-            return [-1, -1, -1, -1]
+            return [-1, -1, -1, -1, -1]
         return [moisture, light, temp, humidity, button]
 
     except IOError as TypeError:
-        return [-1, -1, -1, -1]
+        return [-1, -1, -1, -1, -1]
 
 
 def init():

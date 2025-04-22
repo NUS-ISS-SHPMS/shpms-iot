@@ -1,2 +1,6 @@
 /tmp
 plant_monitor_log.csv
+
+*.cert.pem
+*.private.key
+root-CA.crt
