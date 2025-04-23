@@ -67,11 +67,19 @@ def construct_payload(line):
         ]
     }
 
+def clear_data(file_path, lines):
+    if len(lines) > 50:
+        with open(file_path, "w", newline="") as write_file:
+            writer = csv.writer(write_file)
+            writer.writerow(lines[0])
+            writer.writerows(lines[-10:])
+
 def read_last_line(file_path, last_time):
     with open(file_path, "r") as file:
-        reader = csv.reader(file)
-        lines = list(reader)
+        lines = list(csv.reader(file))
+
         if len(lines) > 1 and lines[-1][0] != last_time:
+            clear_data(file_path, lines)
             return lines[-1]
         return None
 
