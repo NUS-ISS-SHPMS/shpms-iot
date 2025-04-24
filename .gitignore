@@ -6,3 +6,4 @@ plant_monitor_log.csv
 root-CA.crt
 mqtt_log.txt
 *.pid
+*.log
