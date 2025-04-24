@@ -11,17 +11,19 @@ PATH_TO_CERT = "raspberry_pi.cert.pem"
 PATH_TO_KEY = "raspberry_pi.private.key"
 PATH_TO_ROOT = "root-CA.crt"
 CSV_FILE = "plant_monitor_log.csv"
+MQTT_FILE = "mqtt_log.txt"
 TIME_TO_SLEEP = 1
+LOG_LENGTH = 500
 
 def connect_to_aws():
     mqtt_connection = mqtt_connection_builder.mtls_from_path(
-        endpoint=ENDPOINT,
-        cert_filepath=PATH_TO_CERT,
-        pri_key_filepath=PATH_TO_KEY,
-        ca_filepath=PATH_TO_ROOT,
-        client_id=CLIENT_ID,
-        clean_session=False,
-        keep_alive_secs=30)
+        endpoint = ENDPOINT,
+        cert_filepath = PATH_TO_CERT,
+        pri_key_filepath = PATH_TO_KEY,
+        ca_filepath = PATH_TO_ROOT,
+        client_id = CLIENT_ID,
+        clean_session = False,
+        keep_alive_secs = 30)
 
     print("Connecting to AWS IoT...")
     try:
@@ -35,10 +37,19 @@ def connect_to_aws():
 
 def subscribe_to_topic(mqtt_connection):
     print("Subscribing to topic '{}'...".format(TOPIC))
+    def message_callback(topic, payload, **kwargs):
+        with open(MQTT_FILE, "r+") as log_file:
+            lines = log_file.readlines()
+            log_file.write(f"{payload}\n")
+            if len(lines) > LOG_LENGTH:
+                log_file.seek(0)
+                log_file.writelines(lines[-10:])
+                log_file.truncate()
+
     subscribe_future, packet_id = mqtt_connection.subscribe(
-        topic=TOPIC,
-        qos=mqtt.QoS.AT_LEAST_ONCE,
-        callback=lambda topic, payload, **kwargs: print(f"Received message: {payload}")
+        topic = TOPIC,
+        qos = mqtt.QoS.AT_LEAST_ONCE,
+        callback = message_callback
     )
     subscribe_future.result()
     print("Subscribed!")
@@ -68,8 +79,8 @@ def construct_payload(line):
     }
 
 def clear_data(file_path, lines):
-    if len(lines) > 50:
-        with open(file_path, "w", newline="") as write_file:
+    if len(lines) > LOG_LENGTH:
+        with open(file_path, "w", newline = "") as write_file:
             writer = csv.writer(write_file)
             writer.writerow(lines[0])
             writer.writerows(lines[-10:])
