@@ -4,3 +4,5 @@ plant_monitor_log.csv
 *.cert.pem
 *.private.key
 root-CA.crt
+mqtt_log.txt
+*.pid
