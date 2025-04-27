@@ -67,7 +67,7 @@ def init():
         f.write("time, light, temp, humidity, moisture_1, button_1, relay_1, moisture_2, button_2, relay_2\n")
 
 def get_relay_status(moisture, button):
-    if (moisture != 0 and moisture < MOISTURE_THRESHOLD) or button == BUTTON_PRESSED:
+    if (moisture > 5 and moisture < MOISTURE_THRESHOLD) or button == BUTTON_PRESSED:
         return "on"
     return "off"
 
