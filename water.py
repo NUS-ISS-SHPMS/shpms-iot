@@ -38,39 +38,36 @@ def read_last_line(file_path, previous_line):
         return None
 
 def control_relay(relay_status, relay_actuator, log_time, source):
-    print("log time2: ", log_time)
-    if isinstance(log_time, str):
-        log_time = time.mktime(datetime.strptime(log_time, "%Y-%m-%d:%H-%M-%S").timetuple())
-
-    if source == Source.LOCAL and log_time < relay_block_time[relay_actuator]:
-        return
+    if relay_block_time[relay_actuator] or source == Source.REMOTE:
+        if isinstance(log_time, str):
+            log_time = time.mktime(datetime.strptime(log_time, "%Y-%m-%d:%H-%M-%S").timetuple())
+            if source == Source.REMOTE:
+                relay_block_time[relay_actuator] = log_time + 60
+            elif log_time < relay_block_time[relay_actuator]:
+                return
+            else:
+                relay_block_time[relay_actuator] = None
 
     relay = RELAY_ON if relay_status.strip().lower() == "on" else RELAY_OFF
     grovepi.digitalWrite(relay_actuator, relay)
 
-    relay_block_time[relay_actuator] = log_time + 60
-
 def process_remote_command(log_time):
-    try:
-        with open(REMOTE_FILE, "r+") as file:
-            lines = file.readlines()
-            if lines:
-                first_line = lines[0].strip()
-                json_data = json.loads(first_line)
+    with open(REMOTE_FILE, "r+") as file:
+        lines = file.readlines()
+        if lines:
+            first_line = lines[0].strip()
+            json_data = json.loads(first_line)
 
-                actuator = json_data.get("actuator")
-                state = json_data.get("state")
+            actuator = json_data.get("actuator")
+            state = json_data.get("state")
 
-                if actuator in ["relay1", "relay2"] and state in ["on", "off"]:
-                    relay_actuator = RELAY_ACTUATOR_1 if actuator == "relay1" else RELAY_ACTUATOR_2
-                    control_relay(state, relay_actuator, log_time, Source.REMOTE)
+            if actuator in ["relay1", "relay2"] and state in ["on", "off"]:
+                relay_actuator = RELAY_ACTUATOR_1 if actuator == "relay1" else RELAY_ACTUATOR_2
+                control_relay(state, relay_actuator, log_time, Source.REMOTE)
 
-                file.seek(0)
-                file.writelines(lines[1:])
-                file.truncate()
-
-    except Exception as e:
-        print("Error processing remote command: {}".format(e))
+            file.seek(0)
+            file.writelines(lines[1:])
+            file.truncate()
 
 last_line = None
 while True:
