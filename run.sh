@@ -32,7 +32,7 @@ start_scripts() {
     echo $! > $PLANT_MONITOR_PID
     echo "Started $PLANT_MONITOR_SCRIPT with PID $(cat $PLANT_MONITOR_PID)"
 
-    sleep 5
+    sleep 10
 
     nohup $PYTHON2 $WATER_SCRIPT > water.log 2>&1 &
     echo $! > $WATER_PID

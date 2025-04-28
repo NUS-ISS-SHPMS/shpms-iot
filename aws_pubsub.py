@@ -11,7 +11,8 @@ PATH_TO_CERT = "raspberry_pi.cert.pem"
 PATH_TO_KEY = "raspberry_pi.private.key"
 PATH_TO_ROOT = "root-CA.crt"
 CSV_FILE = "plant_monitor_log.csv"
-MQTT_FILE = "mqtt_log.txt"
+MQTT_FILE = "mqtt_log.ndjson"
+REMOTE_FILE= "remote.ndjson"
 TIME_TO_SLEEP = 1
 LOG_LENGTH = 500
 
@@ -37,14 +38,20 @@ def connect_to_aws():
 
 def subscribe_to_topic(mqtt_connection):
     print("Subscribing to topic '{}'...".format(TOPIC))
+
     def message_callback(topic, payload, **kwargs):
-        with open(MQTT_FILE, "r+") as log_file:
-            lines = log_file.readlines()
-            log_file.write(f"{payload}\n")
-            if len(lines) > LOG_LENGTH:
-                log_file.seek(0)
-                log_file.writelines(lines[-10:])
-                log_file.truncate()
+        try:
+            json_data = json.loads(payload.decode("utf-8"))
+        except json.JSONDecodeError as e:
+            print(f"Failed to decode JSON: {e}")
+            return
+
+        with open(MQTT_FILE, "a") as log_file:
+            log_file.write(json.dumps(json_data) + "\n")
+
+        if "actuator" in json_data and json_data["actuator"]:
+            with open(REMOTE_FILE, "a") as remote_file:
+                remote_file.write(json.dumps(json_data) + "\n")
 
     subscribe_future, packet_id = mqtt_connection.subscribe(
         topic = TOPIC,
