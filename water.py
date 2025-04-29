@@ -1,12 +1,5 @@
-from enum import Enum
-from datetime import datetime
 import time
-import json
 import grovepi
-
-class Source(Enum):
-    LOCAL = "local"
-    REMOTE = "remote"
 
 # D port
 RELAY_ACTUATOR_1 = 4
@@ -18,15 +11,9 @@ RELAY_ON = 1
 
 TIME_TO_SLEEP = 1
 CSV_FILE = "plant_monitor_log.csv"
-REMOTE_FILE = "remote.ndjson"
 
 grovepi.pinMode(RELAY_ACTUATOR_1, "OUTPUT")
 grovepi.pinMode(RELAY_ACTUATOR_2, "OUTPUT")
-
-relay_block_time = {
-    RELAY_ACTUATOR_1: 0,
-    RELAY_ACTUATOR_2: 0
-}
 
 def read_last_line(file_path, previous_line):
     with open(file_path, "r") as file:
@@ -37,37 +24,9 @@ def read_last_line(file_path, previous_line):
                 return last_line
         return None
 
-def control_relay(relay_status, relay_actuator, log_time, source):
-    if relay_block_time[relay_actuator] or source == Source.REMOTE:
-        if isinstance(log_time, str):
-            log_time = time.mktime(datetime.strptime(log_time, "%Y-%m-%d:%H-%M-%S").timetuple())
-            if source == Source.REMOTE:
-                relay_block_time[relay_actuator] = log_time + 60
-            elif log_time < relay_block_time[relay_actuator]:
-                return
-            else:
-                relay_block_time[relay_actuator] = None
-
+def control_relay(relay_status, relay_actuator):
     relay = RELAY_ON if relay_status.strip().lower() == "on" else RELAY_OFF
     grovepi.digitalWrite(relay_actuator, relay)
-
-def process_remote_command(log_time):
-    with open(REMOTE_FILE, "r+") as file:
-        lines = file.readlines()
-        if lines:
-            first_line = lines[0].strip()
-            json_data = json.loads(first_line)
-
-            actuator = json_data.get("actuator")
-            state = json_data.get("state")
-
-            if actuator in ["relay1", "relay2"] and state in ["on", "off"]:
-                relay_actuator = RELAY_ACTUATOR_1 if actuator == "relay1" else RELAY_ACTUATOR_2
-                control_relay(state, relay_actuator, log_time, Source.REMOTE)
-
-            file.seek(0)
-            file.writelines(lines[1:])
-            file.truncate()
 
 last_line = None
 while True:
@@ -77,11 +36,9 @@ while True:
         relay_1 = last_line.split(",")[6]
         relay_2 = last_line.split(",")[9]
 
-        control_relay(relay_1, RELAY_ACTUATOR_1, log_time, Source.LOCAL)
-        control_relay(relay_2, RELAY_ACTUATOR_2, log_time, Source.LOCAL)
+        control_relay(relay_1, RELAY_ACTUATOR_1)
+        control_relay(relay_2, RELAY_ACTUATOR_2)
 
         last_time = log_time
-
-    process_remote_command(log_time)
 
     time.sleep(TIME_TO_SLEEP)
