@@ -5,10 +5,6 @@ from enum import Enum
 import json
 from datetime import datetime
 
-class Source(Enum):
-    LOCAL = "local"
-    REMOTE = "remote"
-
 # A port
 LIGHT_SENSOR = 0
 MOISTURE_SENSOR_2 = 1
