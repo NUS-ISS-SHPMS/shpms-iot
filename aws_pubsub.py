@@ -46,8 +46,11 @@ def subscribe_to_topic(mqtt_connection):
             print(f"Failed to decode JSON: {e}")
             return
 
-        with open(MQTT_FILE, "a") as log_file:
+        with open(MQTT_FILE, "r+") as log_file:
             log_file.write(json.dumps(json_data) + "\n")
+            lines = log_file.readlines()
+            if len(lines) > 500:
+                log_file.writelines(lines[-50:])
 
         if "actuator" in json_data and json_data["actuator"]:
             with open(REMOTE_FILE, "a") as remote_file:
